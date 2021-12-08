@@ -28,3 +28,4 @@ As this Coursework, is mainly tasked on refactoring and maintain the software, I
 + addition of the scoreboard popup after every successful completion of the level. (GameScoreDisplay class)
 + addition of a score saving feature to a text file after every successful completion of level. (GameScore class)
 + a little aesthetic changes on the debug console which will allow the user to switch between level.
++ added maven support.
