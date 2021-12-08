@@ -22,21 +22,15 @@ import FX.Model.Entities.Entities;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-
-import java.util.Random;
 
 /**
  * This class is an abstract class which is going to be used for implementation. (Model.Brick.CementBrick, Model.Brick.ClayBrick, Model.Brick.SteelBrick, Model.Brick.ReinforcedSteelBrick)
  */
 abstract public class Brick extends Entities {
 
-    private static Random rnd;
-
-    Rectangle brickFace;
-
     private int maxStrength;
     private int currentStrength;
+    private double hitProbability;
     private String brickName;
 
     private boolean broken;
@@ -50,11 +44,10 @@ abstract public class Brick extends Entities {
      * @param inner the inside color of brick
      * @param strength the strength of the brick. (how many hits can it take before it break)
      */
-    public Brick(Point2D pos, Dimension2D size, Color border, Color inner, int strength,String brickName){
+    public Brick(Point2D pos, Dimension2D size, Color border, Color inner, int strength, double hitProbability,String brickName){
         super(pos,border,inner,(int)size.getWidth(),(int)size.getHeight());
-        setRnd(new Random());
         setBroken(false);
-        setBrickFace(makeBrickFace(pos,size));
+        setHitProbability(hitProbability);
         setMaxStrength(strength);
         setCurrentStrength(strength);
         setBrickName(brickName);
@@ -78,24 +71,12 @@ abstract public class Brick extends Entities {
         this.brickName = brickName;
     }
 
-    /**
-     * this method is used to set the shape of the brick.
-     *
-     * @param pos the position where the shape of the brick is formulated.
-     * @param size the size of the brick shape.
-     * @return the shape of the brick and on that position.
-     */
-    protected Rectangle makeBrickFace(Point2D pos,Dimension2D size){
-        return new Rectangle(pos.getX(),pos.getY(),size.getWidth(),size.getHeight());
+    public double getHitProbability() {
+        return hitProbability;
     }
 
-    /**
-     * this method is used to get the shape of the brick.
-     *
-     * @return it returns the shape of the brick.
-     */
-    public Rectangle getBrick(){
-        return brickFace;
+    public void setHitProbability(double hitProbability) {
+        this.hitProbability = hitProbability;
     }
 
     /**
@@ -105,63 +86,6 @@ abstract public class Brick extends Entities {
      */
     public final boolean isBroken(){
         return broken;
-    }
-
-    /**
-     * this method is used to repair the brick to full strength.
-     */
-    public void repair() {
-        setBroken(false);
-        setCurrentStrength(getMaxStrength());
-    }
-
-    /**
-     * this method is used to decrement the strength of the brick and update the broken variable if it is broken or not.
-     */
-    public void impacted(){
-        setCurrentStrength(getCurrentStrength()-1);
-        setBroken(getCurrentStrength() == 0);
-    }
-
-    /**
-     * this method is used to determine if the brick is broken.
-     *
-     * @param point the point where the ball comes in contact to
-     * @param dir the direction where the ball comes in contact with the object.
-     * @return returns a boolean value negative if the brick is broken, true if it is not.
-     */
-    public boolean setImpact(Point2D point , int dir){
-        if(isBroken())
-            return false;
-        impacted();
-        return  isBroken();
-    }
-
-    /**
-     * this method is used to get the random object.
-     *
-     * @return it returns a random object.
-     */
-    public static Random getRnd() {
-        return rnd;
-    }
-
-    /**
-     * this method is used to set a random object into a variable for future usage.
-     *
-     * @param rnd this is the random object used to set into a variable.
-     */
-    public static void setRnd(Random rnd) {
-        Brick.rnd = rnd;
-    }
-
-    /**
-     * this method is used to set the brick face object into a variable for future usage.
-     *
-     * @param brickFace this is the brick face shape used to set into a variable.
-     */
-    public void setBrickFace(Rectangle brickFace) {
-        this.brickFace = brickFace;
     }
 
     /**

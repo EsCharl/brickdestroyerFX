@@ -21,13 +21,13 @@ package FX.Controller;
 import FX.GameStart;
 import FX.Model.Entities.Ball.Ball;
 import FX.Model.Entities.Brick.Brick;
-import FX.Model.Entities.Brick.Crack;
 import FX.Model.Entities.Brick.Crackable;
 import FX.Model.Entities.Entities;
 import FX.Model.Game;
 import FX.Model.GameScore;
 import FX.Model.Entities.Player;
 
+import FX.Model.SoundEffects;
 import FX.View.GameScoreDisplay;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
@@ -60,34 +60,21 @@ public class GameStateController implements Initializable {
 
     private Game game;
     private GameScore gameScore;
-    private GraphicsContext graphicsContext;
     private GameScoreDisplay gameScoreDisplay;
+    private SoundEffects soundEffects;
+
+    private GraphicsContext graphicsContext;
     private AnimationTimer animationTimer;
     private Scene scene;
+
     private ArrayList<KeyCode> userInput;
-    private AudioClip clayBrickCollisionSound1;
-    private AudioClip clayBrickCollisionSound2;
-    private AudioClip gameWindowCollisionSound1;
-    private AudioClip gameWindowCollisionSound2;
-    private AudioClip ballPlayerCollisionSound1;
-    private AudioClip ballPlayerCollisionSound2;
-    private AudioClip steelBrickCollisionSound1;
-    private AudioClip steelBrickCollisionSound2;
-    private AudioClip cementBrickCollisionSound;
-    private AudioClip cementBrickDestroyedSound;
-
-    private AudioClip victorySound;
-    private AudioClip lostSound;
-
-    private Image backgroundImage;
 
     @FXML private Canvas gameBoard;
     @FXML private AnchorPane anchorPane;
     @FXML private Text gameText;
 
-    boolean toggle = true;
-
     public GameStateController() {
+        soundEffects = new SoundEffects();
         userInput = new ArrayList<>();
 
         game = Game.singletonGame();
@@ -97,20 +84,6 @@ public class GameStateController implements Initializable {
         game.setShowPauseMenu(false);
 
         gameScore.setLevelFilePathName("/scores/Level"+ game.getCurrentLevel()+".txt");
-        backgroundImage = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/GameImage.png")));
-
-        clayBrickCollisionSound1 = new AudioClip(getClass().getResource("/SoundEffects/ClayImpactSound1.mp3").toExternalForm());
-        clayBrickCollisionSound2 = new AudioClip(getClass().getResource("/SoundEffects/ClayImpactSound2.mp3").toExternalForm());
-        steelBrickCollisionSound1 = new AudioClip(getClass().getResource("/SoundEffects/SteelImpactSound1.mp3").toExternalForm());
-        steelBrickCollisionSound2 = new AudioClip(getClass().getResource("/SoundEffects/SteelImpactSound2.mp3").toExternalForm());
-        victorySound = new AudioClip(getClass().getResource("/SoundEffects/VictorySound.wav").toExternalForm());
-        lostSound = new AudioClip(getClass().getResource("/SoundEffects/DefeatSound.wav").toExternalForm());
-        gameWindowCollisionSound1 = new AudioClip(getClass().getResource("/SoundEffects/WindowImpact1.mp3").toExternalForm());
-        gameWindowCollisionSound2 = new AudioClip(getClass().getResource("/SoundEffects/WindowImpact2.mp3").toExternalForm());
-        ballPlayerCollisionSound1 = new AudioClip(getClass().getResource("/SoundEffects/BallPlayerImpactSound1.mp3").toExternalForm());
-        ballPlayerCollisionSound2 = new AudioClip(getClass().getResource("/SoundEffects/BallPlayerImpactSound2.mp3").toExternalForm());
-        cementBrickCollisionSound = new AudioClip(getClass().getResource("/SoundEffects/CementImpactSound.wav").toExternalForm());
-        cementBrickDestroyedSound = new AudioClip(getClass().getResource("/SoundEffects/CementBreak.mp3").toExternalForm());
     }
 
     @FXML
@@ -124,7 +97,7 @@ public class GameStateController implements Initializable {
         animationTimer = new AnimationTimer() {
             @Override
             public void handle(long l) {
-                graphicsContext.drawImage(backgroundImage,0,0);
+                graphicsContext.drawImage(game.getBackgroundImage(),0,0);
 
                 graphicsContext.setLineWidth(2);
 
@@ -139,10 +112,10 @@ public class GameStateController implements Initializable {
                     gameScore.pauseTimer();
                     gameScore.setCanGetTime(false);
                     game.setBallLost(false);
-                    toggle = false;
+                    game.setToggle(false);
                     if(game.isGameOver()){
                         GameStart.audio.pause();
-                        lostSound.play();
+                        soundEffects.getLostSound().play();
                         game.resetBallCount();
                         gameText.setText("Game Over. Time spent in this level: " + gameScore.getTimerString());
                         gameScore.restartTimer();
@@ -174,7 +147,7 @@ public class GameStateController implements Initializable {
                     gameScore.setCanGetTime(false);
                     gameScoreHandler();
                     GameStart.audio.pause();
-                    victorySound.play();
+                    soundEffects.getVictorySound().play();
                     if(game.hasLevel()){
                         gameText.setText("Go to Next Level");
                         animationTimer.stop();
@@ -188,7 +161,7 @@ public class GameStateController implements Initializable {
                     }
                     game.getBall().resetPosition();
                     game.getPlayer().resetPosition();
-                    game.getBall().setRandomBallSpeed();
+                    game.setRandomBallSpeed(game.getBall());
                 }
             }
 
@@ -227,7 +200,7 @@ public class GameStateController implements Initializable {
                     gameText.setText("Focus Lost");
                     gameScore.setCanGetTime(false);
                     animationTimer.stop();
-                    toggle = false;
+                    game.setToggle(false);
                 });
             }
 
@@ -254,10 +227,10 @@ public class GameStateController implements Initializable {
              * @param ball this is the ball object used to draw on the window.
              */
             private void drawBall(Ball ball){
-                graphicsContext.setFill(ball.getInnerBallColor());
+                graphicsContext.setFill(ball.getInnerColor());
                 graphicsContext.fillOval(ball.getBounds().getMinX(), ball.getBounds().getMinY(), ball.getRadius(), ball.getRadius());
 
-                graphicsContext.setStroke(ball.getBorderBallColor());
+                graphicsContext.setStroke(ball.getBorderColor());
                 graphicsContext.strokeOval(ball.getBounds().getMinX()-1, ball.getBounds().getMinY()-1, ball.getRadius()+2, ball.getRadius()+2);
             }
 
@@ -328,7 +301,7 @@ public class GameStateController implements Initializable {
                 gameScore.setCanGetTime(false);
             }
             animationTimer.stop();
-            toggle = false;
+            game.setToggle(false);
             showDebugConsole();
         }else if(userInput.contains(KeyCode.H)){
             game.setBotMode(!game.isBotMode());
@@ -376,32 +349,32 @@ public class GameStateController implements Initializable {
     public void findImpacts(){
         if(impact(game.getBall(),game.getPlayer())){
             ballBottomCollision();
-            ballCollisionRandomSound(ballPlayerCollisionSound1, ballPlayerCollisionSound2);
+            ballCollisionRandomSound(soundEffects.getBallPlayerCollisionSound1(), soundEffects.getBallPlayerCollisionSound2());
         }
         else if(impactWall()){
             game.setBrickCount(game.getBrickCount()-1);
         }
         if((game.getBall().getBounds().getMinX() < gameBoard.getBoundsInLocal().getMinX())){
-            if (game.getBall().getXSpeed() < 0){
-                ballCollisionRandomSound(gameWindowCollisionSound1, gameWindowCollisionSound2);
+            if (game.getBall().getSpeedX() < 0){
+                ballCollisionRandomSound(soundEffects.getGameWindowCollisionSound1(), soundEffects.getGameWindowCollisionSound2());
                 ballLeftCollision();
             }
         }else if(game.getBall().getBounds().getMaxX() > gameBoard.getBoundsInLocal().getMaxX()){
-            if (game.getBall().getXSpeed() > 0){
-                ballCollisionRandomSound(gameWindowCollisionSound1, gameWindowCollisionSound2);
+            if (game.getBall().getSpeedX() > 0){
+                ballCollisionRandomSound(soundEffects.getGameWindowCollisionSound1(), soundEffects.getGameWindowCollisionSound2());
                 ballRightCollision();
             }
         }
 
         if(game.getBall().getBounds().getMinY() < gameBoard.getBoundsInLocal().getMinY()){
             ballTopCollision();
-            ballCollisionRandomSound(gameWindowCollisionSound1, gameWindowCollisionSound2);
+            ballCollisionRandomSound(soundEffects.getGameWindowCollisionSound1(), soundEffects.getGameWindowCollisionSound2());
         }
         else if(game.getBall().getBounds().getMaxY() > gameBoard.getBoundsInLocal().getMaxY()){
             game.setBallCount(game.getBallCount() - 1);
             game.getBall().resetPosition();
             game.getPlayer().resetPosition();
-            game.getBall().setRandomBallSpeed();
+            game.setRandomBallSpeed(game.getBall());
             game.setBallLost(true);
         }
     }
@@ -414,17 +387,17 @@ public class GameStateController implements Initializable {
     private void playBrickSoundEffect(Brick b){
         switch (b.getBrickName()){
             case "Clay Brick":
-                ballCollisionRandomSound(clayBrickCollisionSound1, clayBrickCollisionSound2);
+                ballCollisionRandomSound(soundEffects.getClayBrickCollisionSound1(), soundEffects.getClayBrickCollisionSound2());
                 break;
             case "Reinforced Steel Brick":
             case "Steel Brick":
-                ballCollisionRandomSound(steelBrickCollisionSound1, steelBrickCollisionSound2);
+                ballCollisionRandomSound(soundEffects.getSteelBrickCollisionSound1(), soundEffects.getSteelBrickCollisionSound2());
                 break;
             case "Cement Brick":
                 if(!b.isBroken())
-                    cementBrickCollisionSound.play();
+                    soundEffects.getCementBrickCollisionSound().play();
                 else
-                    cementBrickDestroyedSound.play();
+                    soundEffects.getCementBrickDestroyedSound().play();
                 break;
             default:
         }
@@ -447,11 +420,11 @@ public class GameStateController implements Initializable {
      * this method is used to change the direction of the ball to another direction on the x-axis with an increment of a decrement in speed if it is being collided on the left side of the ball.
      */
     private void ballLeftCollision() {
-        game.getBall().setXSpeed(-game.getBall().getXSpeed());
-        if(game.getRnd().nextBoolean() && game.getBall().getXSpeed() < 4){
-            game.getBall().setXSpeed(game.getBall().getXSpeed()+1);
-        }else if(game.getRnd().nextBoolean() && game.getBall().getXSpeed() > 1){
-            game.getBall().setXSpeed(game.getBall().getXSpeed()-1);
+        game.getBall().setSpeedX(-game.getBall().getSpeedX());
+        if(game.getRnd().nextBoolean() && game.getBall().getSpeedX() < game.getBall().getMAX_BALL_SPEED()){
+            game.getBall().setSpeedX(game.getBall().getSpeedX()+1);
+        }else if(game.getRnd().nextBoolean() && game.getBall().getSpeedX() > game.getBall().getMIN_BALL_SPEED()){
+            game.getBall().setSpeedX(game.getBall().getSpeedX()-1);
         }
     }
 
@@ -459,11 +432,11 @@ public class GameStateController implements Initializable {
      * this method is used to change the direction of the ball to another direction on the x-axis with an increment of a decrement in speed if it is being collided on the right side of the ball.
      */
     private void ballRightCollision() {
-        game.getBall().setXSpeed(-game.getBall().getXSpeed());
-        if(game.getRnd().nextBoolean() && (game.getBall().getXSpeed() > -4)){
-            game.getBall().setXSpeed(game.getBall().getXSpeed()-1);
-        }else if(game.getRnd().nextBoolean() && game.getBall().getXSpeed() < -1){
-            game.getBall().setXSpeed(game.getBall().getXSpeed()+1);
+        game.getBall().setSpeedX(-game.getBall().getSpeedX());
+        if(game.getRnd().nextBoolean() && (game.getBall().getSpeedX() > -game.getBall().getMAX_BALL_SPEED())){
+            game.getBall().setSpeedX(game.getBall().getSpeedX()-1);
+        }else if(game.getRnd().nextBoolean() && game.getBall().getSpeedX() < -game.getBall().getMIN_BALL_SPEED()){
+            game.getBall().setSpeedX(game.getBall().getSpeedX()+1);
         }
     }
 
@@ -471,22 +444,22 @@ public class GameStateController implements Initializable {
      * this method is used to change the direction of the ball to another direction on the y-axis with an increment of a decrement in speed if it is being collided on the top side of the ball.
      */
     private void ballTopCollision() {
-        game.getBall().setYSpeed(-game.getBall().getYSpeed());
-        if(game.getRnd().nextBoolean() && game.getBall().getYSpeed() < 4)
-            game.getBall().setYSpeed(game.getBall().getYSpeed()+1);
-        else if(game.getRnd().nextBoolean() && game.getBall().getYSpeed() > 1)
-            game.getBall().setYSpeed(game.getBall().getYSpeed()-1);
+        game.getBall().setSpeedY(-game.getBall().getSpeedY());
+        if(game.getRnd().nextBoolean() && game.getBall().getSpeedY() < game.getBall().getMAX_BALL_SPEED())
+            game.getBall().setSpeedY(game.getBall().getSpeedY()+1);
+        else if(game.getRnd().nextBoolean() && game.getBall().getSpeedY() > game.getBall().getMIN_BALL_SPEED())
+            game.getBall().setSpeedY(game.getBall().getSpeedY()-1);
     }
 
     /**
      * this method is used to change the direction of the ball to another direction on the y-axis with an increment of a decrement in speed if it is being collided on the bottom side of the ball.
      */
     private void ballBottomCollision() {
-        game.getBall().setYSpeed(-game.getBall().getYSpeed());
-        if (game.getRnd().nextBoolean() && game.getBall().getYSpeed() > -4) {
-            game.getBall().setYSpeed(game.getBall().getYSpeed() - 1);
-        } else if (game.getRnd().nextBoolean() && game.getBall().getYSpeed() < -1) {
-            game.getBall().setYSpeed(game.getBall().getYSpeed() + 1);
+        game.getBall().setSpeedY(-game.getBall().getSpeedY());
+        if (game.getRnd().nextBoolean() && game.getBall().getSpeedY() > -game.getBall().getMAX_BALL_SPEED()) {
+            game.getBall().setSpeedY(game.getBall().getSpeedY() - 1);
+        } else if (game.getRnd().nextBoolean() && game.getBall().getSpeedY() < -game.getBall().getMIN_BALL_SPEED()) {
+            game.getBall().setSpeedY(game.getBall().getSpeedY() + 1);
         }
     }
 
@@ -512,22 +485,22 @@ public class GameStateController implements Initializable {
                 if(b.getBounds().contains(game.getBall().getBounds().getMinX()+game.getBall().getBounds().getWidth()/2, game.getBall().getBounds().getMaxY())){
                     ballBottomCollision();
                     playBrickSoundEffect(b);
-                    return b.setImpact(new Point2D(game.getBall().getBounds().getMaxX()-game.getBall().getBounds().getHeight(),game.getBall().getBounds().getMaxY()), Crack.getUP());
+                    return setImpact(new Point2D(game.getBall().getBounds().getMaxX()-game.getBall().getBounds().getHeight(),game.getBall().getBounds().getMaxY()), Crackable.UP, b);
                 }
                 else if (b.getBounds().contains(game.getBall().getBounds().getMinX()+game.getBall().getBounds().getWidth()/2,game.getBall().getBounds().getMinY())){
                     ballTopCollision();
                     playBrickSoundEffect(b);
-                    return b.setImpact(new Point2D(game.getBall().getBounds().getMinX()+game.getBall().getBounds().getWidth(),game.getBall().getBounds().getMinY()), Crack.getDOWN());
+                    return setImpact(new Point2D(game.getBall().getBounds().getMinX()+game.getBall().getBounds().getWidth(),game.getBall().getBounds().getMinY()), Crackable.DOWN, b);
                 }
                 else if(b.getBounds().contains(game.getBall().getBounds().getMaxX(),game.getBall().getBounds().getMinY()+game.getBall().getBounds().getHeight()/2)){
                     ballLeftCollision();
                     playBrickSoundEffect(b);
-                    return b.setImpact(new Point2D(game.getBall().getBounds().getMaxX(),game.getBall().getBounds().getMaxY()-game.getBall().getBounds().getHeight()), Crack.getRIGHT());
+                    return setImpact(new Point2D(game.getBall().getBounds().getMaxX(),game.getBall().getBounds().getMaxY()-game.getBall().getBounds().getHeight()), Crackable.RIGHT, b);
                 }
                 else if(b.getBounds().contains(game.getBall().getBounds().getMinX(),game.getBall().getBounds().getMinY()+game.getBall().getBounds().getHeight()/2)){
                     ballRightCollision();
                     playBrickSoundEffect(b);
-                    return b.setImpact(new Point2D(game.getBall().getBounds().getMinX(),game.getBall().getBounds().getMaxY()-game.getBall().getBounds().getHeight()), Crack.getLEFT());
+                    return setImpact(new Point2D(game.getBall().getBounds().getMinX(),game.getBall().getBounds().getMaxY()-game.getBall().getBounds().getHeight()), Crackable.LEFT, b);
                 }
             }
         }
@@ -535,22 +508,47 @@ public class GameStateController implements Initializable {
     }
 
     /**
+     * this method is used to determine whether the brick should be broken or draw a crack on the brick.
+     *
+     * @param point the point where the ball comes in contact to
+     * @param dir the direction where the ball comes in contact with the object.
+     * @return returns a boolean value negative if the brick is broken, true if it is not.
+     */
+    public boolean setImpact(Point2D point, int dir, Brick brick) {
+        if(brick.isBroken())
+            return false;
+        boolean hit = game.getRnd().nextDouble() < brick.getHitProbability();
+        if(hit){
+            brick.setCurrentStrength(brick.getCurrentStrength()-1);
+            brick.setBroken(brick.getCurrentStrength() == 0);
+        }
+        if(!brick.isBroken()){
+            if(hit){ // remove this if statement for more fun inducing excitement. :D
+                prepareCrack(point,dir, brick);
+//                updateBrick();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * this method is used to toggle between pausing the game and proceeding th game
      */
     public void togglePauseContinueGame(){
-        if(toggle){
+        if(game.isToggle()){
             animationTimer.stop();
             gameScore.pauseTimer();
             gameScore.setCanGetTime(true);
-            toggle = false;
+            game.setToggle(false);
         }
         else{
-            victorySound.stop();
+            soundEffects.getVictorySound().stop();
             GameStart.audio.play();
             animationTimer.start();
             gameScore.startTimer();
             gameScore.setCanGetTime(true);
-            toggle = true;
+            game.setToggle(true);
         }
     }
 
@@ -589,4 +587,95 @@ public class GameStateController implements Initializable {
             game.setShowPauseMenu(true);
         }
     }
+
+    /**
+     * This method is used to calculate and determine where to draw the crack.
+     *
+     * @param point the point where the ball comes in contact with.
+     * @param direction the direction where the ball touch the brick.
+     */
+    protected void prepareCrack(Point2D point, int direction, Brick brick){
+
+        Point2D oppositeSideOfCollisionCornerPoint1;
+        Point2D oppositeSideOfCollisionCornerPoint2;
+
+        switch (direction) {
+            case Crackable.LEFT -> {
+                oppositeSideOfCollisionCornerPoint1 = new Point2D(brick.getBounds().getMinX() + brick.getBounds().getWidth(), brick.getBounds().getMinY());
+                oppositeSideOfCollisionCornerPoint2 = new Point2D(brick.getBounds().getMinX() + brick.getBounds().getWidth(), brick.getBounds().getMinY() + brick.getBounds().getHeight());
+                makeCrack(new Point2D((int) point.getX(), (int) point.getY()), makeRandomPointBetween(oppositeSideOfCollisionCornerPoint1, oppositeSideOfCollisionCornerPoint2, Crackable.VERTICAL), brick);
+            }
+            case Crackable.RIGHT -> {
+                oppositeSideOfCollisionCornerPoint1 = new Point2D(brick.getBounds().getMinX(), brick.getBounds().getMinY());
+                oppositeSideOfCollisionCornerPoint2 = new Point2D(brick.getBounds().getMinX(), brick.getBounds().getMinY() + brick.getBounds().getHeight());
+                makeCrack(new Point2D((int) point.getX(), (int) point.getY()), makeRandomPointBetween(oppositeSideOfCollisionCornerPoint1, oppositeSideOfCollisionCornerPoint2, Crackable.VERTICAL), brick);
+            }
+            case Crackable.UP -> {
+                oppositeSideOfCollisionCornerPoint1 = new Point2D(brick.getBounds().getMinX(), brick.getBounds().getMinY() + brick.getBounds().getHeight());
+                oppositeSideOfCollisionCornerPoint2 = new Point2D(brick.getBounds().getMinX() + brick.getBounds().getWidth(), brick.getBounds().getMinY() + brick.getBounds().getHeight());
+                makeCrack(new Point2D((int) point.getX(), (int) point.getY()), makeRandomPointBetween(oppositeSideOfCollisionCornerPoint1, oppositeSideOfCollisionCornerPoint2, Crackable.HORIZONTAL), brick);
+            }
+            case Crackable.DOWN -> {
+                oppositeSideOfCollisionCornerPoint1 = new Point2D(brick.getBounds().getMinX(), brick.getBounds().getMinY());
+                oppositeSideOfCollisionCornerPoint2 = new Point2D(brick.getBounds().getMinX() + brick.getBounds().getWidth(), brick.getBounds().getMinY());
+                makeCrack(new Point2D((int) point.getX(), (int) point.getY()), makeRandomPointBetween(oppositeSideOfCollisionCornerPoint1, oppositeSideOfCollisionCornerPoint2, Crackable.HORIZONTAL), brick);
+            }
+        }
+    }
+
+    /**
+     * this method is used to draw the crack.
+     *
+     * @param start this is the start point where the crack is going to start.
+     * @param end this is the end point where the crack is going to end.
+     */
+    //method name change
+    protected void makeCrack(Point2D start, Point2D end, Brick brick){
+
+        Path path = new Path();
+
+        MoveTo firstPoint = new MoveTo(start.getX(), start.getY());
+
+        path.getElements().add(firstPoint);
+
+        double x,y;
+
+        for(int i = 1; i < Crackable.DEF_STEPS;i++){
+
+            x = (i * ((end.getX() - start.getX()) / (double) Crackable.DEF_STEPS)) + start.getX();
+            y = (i * ((end.getY() - start.getY()) / (double) Crackable.DEF_STEPS)) + start.getY() + game.getRnd().nextInt((Crackable.DEF_CRACK_DEPTH * 2) + 1) - Crackable.DEF_CRACK_DEPTH;
+
+            path.getElements().add(new LineTo(x,y));
+        }
+
+        path.getElements().add(new LineTo(end.getX(),end.getY()));
+
+        if (brick instanceof Crackable)
+            ((Crackable) brick).setCrackPath(path);
+    }
+
+    /**
+     * this method is used to create a random point based on the direction provided.
+     *
+     * @param oppositeOfCollisionCornerPoint1 this is the position where it begins.
+     * @param oppositeOfCollisionPoint2 this is the position where it ends.
+     * @param direction the direction using an integer constant.
+     * @return it returns a random point (coordinate) on the brick.
+     */
+    private Point2D makeRandomPointBetween(Point2D oppositeOfCollisionCornerPoint1, Point2D oppositeOfCollisionPoint2, int direction){
+
+        int position;
+
+        switch (direction){
+            case Crackable.HORIZONTAL:
+                position = game.getRnd().nextInt((int)(oppositeOfCollisionPoint2.getX() - oppositeOfCollisionCornerPoint1.getX())) + (int)oppositeOfCollisionCornerPoint1.getX();
+                return new Point2D(position, oppositeOfCollisionPoint2.getY());
+            case Crackable.VERTICAL:
+                position = game.getRnd().nextInt((int)(oppositeOfCollisionPoint2.getY() - oppositeOfCollisionCornerPoint1.getY())) + (int)oppositeOfCollisionCornerPoint1.getY();
+                return new Point2D(oppositeOfCollisionPoint2.getX(),position);
+            default:
+                return new Point2D(0,0);
+        }
+    }
+
 }
